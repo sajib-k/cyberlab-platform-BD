@@ -1,0 +1,500 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==========================================
+// ENUMS
+// ==========================================
+
+enum Difficulty {
+  BEGINNER
+  EASY
+  MEDIUM
+  HARD
+  EXPERT
+  INSANE
+}
+
+enum QuestionType {
+  TEXT
+  MCQ
+  TRUE_FALSE
+  FLAG
+  NUMERIC
+}
+
+enum LabStatus {
+  STOPPED
+  STARTING
+  RUNNING
+  STOPPING
+  EXPIRED
+  ERROR
+}
+
+enum AuditAction {
+  LOGIN
+  LOGOUT
+  PASSWORD_CHANGE
+  ROLE_CHANGE
+  ADMIN_ACTION
+  FLAG_SUBMISSION
+  LAB_START
+  LAB_STOP
+}
+
+// ==========================================
+// 1. USER & RBAC MODELS
+// ==========================================
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  username      String    @unique
+  passwordHash  String
+  emailVerified Boolean   @default(false)
+  avatarUrl     String?
+  bio           String?
+  points        Int       @default(0)
+  xp            Int       @default(0)
+  level         Int       @default(1)
+  streak        Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  lastLoginAt   DateTime?
+
+  roles               UserRole[]
+  sessions            Session[]
+  verificationTokens  VerificationToken[]  // <--- এই লাইনটি এখানে দাও
+  passwordResetTokens PasswordResetToken[] // <--- এই লাইনটি এখানে দাও
+  submissions         Submission[]
+  progress            Progress[]
+  labInstances        LabInstance[]
+  badges              UserBadge[]
+  achievements        UserAchievement[]
+  auditLogs           AuditLog[]
+
+  @@index([email])
+  @@index([username])
+  @@map("users")
+}
+
+model Role {
+  id          String     @id @default(uuid())
+  name        String     @unique
+  description String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  users       UserRole[]
+
+  @@map("roles")
+}
+
+model UserRole {
+  id        String   @id @default(uuid())
+  userId    String
+  roleId    String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@map("user_roles")
+}
+
+// ==========================================
+// 2. SESSION MODEL
+// ==========================================
+
+model Session {
+  id           String   @id @default(uuid())
+  userId       String
+  tokenHash    String   @unique
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+  lastUsedAt   DateTime @default(now())
+  ipAddress    String?
+  userAgent    String?
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+model VerificationToken {
+  id         String   @id @default(uuid())
+  userId     String
+  tokenHash  String   @unique
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("verification_tokens")
+}
+
+model PasswordResetToken {
+  id         String   @id @default(uuid())
+  userId     String
+  tokenHash  String   @unique
+  expiresAt  DateTime
+  usedAt     DateTime?
+  createdAt  DateTime @default(now())
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("password_reset_tokens")
+}
+// ==========================================
+// 3. LEARNING PATH, COURSE, ROOM, TASK
+// ==========================================
+
+model LearningPath {
+  id          String   @id @default(uuid())
+  title       String
+  slug        String   @unique
+  description String?
+  imageUrl    String?
+  difficulty  Difficulty @default(BEGINNER)
+  published   Boolean  @default(false)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  courses     Course[]
+
+  @@index([slug])
+  @@map("learning_paths")
+}
+
+model Course {
+  id             String       @id @default(uuid())
+  learningPathId String
+  title          String
+  slug           String       @unique
+  description    String?
+  difficulty     Difficulty   @default(BEGINNER)
+  published      Boolean      @default(false)
+  sortOrder      Int          @default(0)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  learningPath   LearningPath @relation(fields: [learningPathId], references: [id], onDelete: Cascade)
+  rooms          Room[]
+
+  @@index([slug])
+  @@index([learningPathId])
+  @@map("courses")
+}
+
+model Room {
+  id              String        @id @default(uuid())
+  courseId        String
+  title           String
+  slug            String        @unique
+  description     String?
+  difficulty      Difficulty    @default(BEGINNER)
+  published       Boolean       @default(false)
+  sortOrder       Int           @default(0)
+  estimatedMinutes Int          @default(30)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  course          Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  tasks           Task[]
+  machines        Machine[]
+  progress        Progress[]
+
+  @@index([slug])
+  @@index([courseId])
+  @@map("rooms")
+}
+
+model Task {
+  id          String     @id @default(uuid())
+  roomId      String
+  title       String
+  slug        String
+  content     Json?
+  sortOrder   Int        @default(0)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  room        Room       @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  questions   Question[]
+  progress    Progress[]
+
+  @@index([roomId])
+  @@map("tasks")
+}
+
+// ==========================================
+// 4. QUESTION, OPTION, HINT, FLAG
+// ==========================================
+
+model Question {
+  id           String         @id @default(uuid())
+  taskId       String
+  type         QuestionType   @default(TEXT)
+  question     String
+  answer       String?
+  caseSensitive Boolean       @default(false)
+  points       Int            @default(10)
+  sortOrder    Int            @default(0)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  task         Task           @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  options      QuestionOption[]
+  hints        Hint[]
+  submissions  Submission[]
+  progress     Progress[]
+
+  @@index([taskId])
+  @@map("questions")
+}
+
+model QuestionOption {
+  id         String   @id @default(uuid())
+  questionId String
+  text       String
+  isCorrect  Boolean  @default(false)
+  sortOrder  Int      @default(0)
+
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@map("question_options")
+}
+
+model Hint {
+  id            String   @id @default(uuid())
+  questionId    String
+  content       String
+  penaltyPoints Int      @default(0)
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+
+  question      Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@map("hints")
+}
+
+model Flag {
+  id          String       @id @default(uuid())
+  machineId   String
+  name        String
+  flagHash    String
+  points      Int          @default(50)
+  createdAt   DateTime     @default(now())
+
+  machine     Machine      @relation(fields: [machineId], references: [id], onDelete: Cascade)
+  submissions Submission[]
+
+  @@index([machineId])
+  @@map("flags")
+}
+
+// ==========================================
+// 5. MACHINES & LAB INSTANCES
+// ==========================================
+
+model MachineTemplate {
+  id               String       @id @default(uuid())
+  name             String
+  slug             String       @unique
+  description      String?
+  image            String
+  difficulty       Difficulty   @default(BEGINNER)
+  estimatedMinutes Int          @default(60)
+  enabled          Boolean      @default(true)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  machines         Machine[]
+
+  @@map("machine_templates")
+}
+
+model Machine {
+  id                String          @id @default(uuid())
+  roomId            String
+  machineTemplateId String
+  name              String
+  description       String?
+  required          Boolean         @default(true)
+  sortOrder         Int             @default(0)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  room              Room            @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  machineTemplate   MachineTemplate @relation(fields: [machineTemplateId], references: [id], onDelete: Restrict)
+  labInstances      LabInstance[]
+  flags             Flag[]
+
+  @@index([roomId])
+  @@index([machineTemplateId])
+  @@map("machines")
+}
+
+model LabInstance {
+  id             String      @id @default(uuid())
+  userId         String
+  machineId      String
+  provider       String      @default("docker")
+  status         LabStatus   @default(STOPPED)
+  connectionInfo Json?
+  startedAt      DateTime?
+  expiresAt      DateTime?
+  stoppedAt      DateTime?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  machine        Machine     @relation(fields: [machineId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([machineId])
+  @@index([status])
+  @@index([expiresAt])
+  @@map("lab_instances")
+}
+
+// ==========================================
+// 6. SUBMISSIONS & PROGRESS
+// ==========================================
+
+model Submission {
+  id            String    @id @default(uuid())
+  userId        String
+  questionId    String?
+  flagId        String?
+  answerHash    String
+  correct       Boolean
+  pointsAwarded Int       @default(0)
+  createdAt     DateTime  @default(now())
+
+  user          User      @relation(fields: [userId], references: [id], onDelete: Restrict)
+  question      Question? @relation(fields: [questionId], references: [id], onDelete: SetNull)
+  flag          Flag?     @relation(fields: [flagId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([questionId])
+  @@index([flagId])
+  @@map("submissions")
+}
+
+model Progress {
+  id          String    @id @default(uuid())
+  userId      String
+  roomId      String?
+  taskId      String?
+  questionId  String?
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  room        Room?     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  task        Task?     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  question    Question? @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roomId, taskId, questionId])
+  @@index([userId])
+  @@index([roomId])
+  @@index([taskId])
+  @@index([questionId])
+  @@map("progress")
+}
+
+// ==========================================
+// 7. BADGES & ACHIEVEMENTS
+// ==========================================
+
+model Badge {
+  id          String      @id @default(uuid())
+  name        String
+  slug        String      @unique
+  description String?
+  icon        String?
+  createdAt   DateTime    @default(now())
+
+  users       UserBadge[]
+
+  @@map("badges")
+}
+
+model UserBadge {
+  id        String   @id @default(uuid())
+  userId    String
+  badgeId   String
+  awardedAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge     Badge    @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, badgeId])
+  @@map("user_badges")
+}
+
+model Achievement {
+  id           String            @id @default(uuid())
+  name         String
+  slug         String            @unique
+  description  String?
+  type         String
+  target       Int
+  points       Int               @default(100)
+  createdAt    DateTime          @default(now())
+
+  userUnlocks  UserAchievement[]
+
+  @@map("achievements")
+}
+
+model UserAchievement {
+  id            String      @id @default(uuid())
+  userId        String
+  achievementId String
+  unlockedAt    DateTime    @default(now())
+
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement   Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, achievementId])
+  @@map("user_achievements")
+}
+
+// ==========================================
+// 8. AUDIT LOGS
+// ==========================================
+
+model AuditLog {
+  id         String      @id @default(uuid())
+  userId     String?
+  action     AuditAction
+  entityType String
+  entityId   String?
+  metadata   Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime    @default(now())
+
+  user       User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([entityType])
+  @@index([entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}

@@ -1,0 +1,23 @@
+{
+  "name": "cyberlab",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --parallel --recursive dev",
+    "build": "pnpm --recursive build",
+    "lint": "pnpm --recursive lint",
+    "test": "pnpm --recursive test",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,yml,yaml}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,yml,yaml}\"",
+    "typecheck": "pnpm --filter \"./apps/*\" --filter \"./packages/*\" exec tsc --noEmit",
+    "prisma:generate": "pnpm --filter @cyberlab/api prisma:generate",
+    "prisma:migrate": "pnpm --filter @cyberlab/api prisma:migrate",
+    "prisma:studio": "pnpm --filter @cyberlab/api prisma:studio",
+    "db:seed": "pnpm --filter @cyberlab/api run db:seed"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "prettier": "^3.2.5",
+    "typescript": "^5.3.3"
+  }
+}

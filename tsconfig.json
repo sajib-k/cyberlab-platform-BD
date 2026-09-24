@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "ES2021",
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "jsx": "react-jsx",
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "paths": {
+      "@cyberlab/types": ["./packages/types/src"],
+      "@cyberlab/ui": ["./packages/ui/src"]
+    }
+  },
+  "exclude": ["node_modules", "dist", ".next"]
+}
