@@ -54,6 +54,12 @@ enum AuditAction {
   ROLE_CHANGE
   ADMIN_ACTION
   FLAG_SUBMISSION
+  FLAG_CREATED
+  FLAG_ROTATED
+  FLAG_DEACTIVATED
+  FLAG_SUBMISSION_CORRECT
+  FLAG_SUBMISSION_INCORRECT
+  FLAG_SUBMISSION_RATE_LIMITED
   LAB_START
   LAB_STOP
 }
@@ -63,31 +69,31 @@ enum AuditAction {
 // ==========================================
 
 model User {
-  id                  String               @id @default(uuid())
-  email               String               @unique
-  username            String               @unique
-  passwordHash        String
-  emailVerified       Boolean              @default(false)
-  avatarUrl           String?
-  bio                 String?
-  points              Int                  @default(0)
-  xp                  Int                  @default(0)
-  level               Int                  @default(1)
-  streak              Int                  @default(0)
-  createdAt           DateTime             @default(now())
-  updatedAt           DateTime             @updatedAt
-  lastLoginAt         DateTime?
+  id                 String               @id @default(uuid())
+  email              String               @unique
+  username           String               @unique
+  passwordHash       String
+  emailVerified      Boolean              @default(false)
+  avatarUrl          String?
+  bio                String?
+  points             Int                  @default(0)
+  xp                 Int                  @default(0)
+  level              Int                  @default(1)
+  streak             Int                  @default(0)
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  lastLoginAt        DateTime?
 
-  roles               UserRole[]
-  sessions            Session[]
-  verificationTokens  VerificationToken[]
+  roles              UserRole[]
+  sessions           Session[]
+  verificationTokens VerificationToken[]
   passwordResetTokens PasswordResetToken[]
-  submissions         Submission[]
-  progress            Progress[]
-  labInstances        LabInstance[]
-  badges              UserBadge[]
-  achievements        UserAchievement[]
-  auditLogs           AuditLog[]
+  submissions        Submission[]
+  progress           Progress[]
+  labInstances       LabInstance[]
+  badges             UserBadge[]
+  achievements       UserAchievement[]
+  auditLogs          AuditLog[]
 
   @@index([email])
   @@index([username])
@@ -233,17 +239,18 @@ model Room {
 }
 
 model Task {
-  id        String     @id @default(uuid())
+  id        String    @id @default(uuid())
   roomId    String
   title     String
   slug      String
   content   Json?
-  sortOrder Int        @default(0)
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  sortOrder Int       @default(0)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
-  room      Room       @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  room      Room      @relation(fields: [roomId], references: [id], onDelete: Cascade)
   questions Question[]
+  flags     Flag[]
   progress  Progress[]
 
   @@index([roomId])
@@ -255,18 +262,18 @@ model Task {
 // ==========================================
 
 model Question {
-  id            String         @id @default(uuid())
+  id            String       @id @default(uuid())
   taskId        String
-  type          QuestionType   @default(TEXT)
+  type          QuestionType @default(TEXT)
   question      String
   answer        String?
-  caseSensitive Boolean        @default(false)
-  points        Int            @default(10)
-  sortOrder     Int            @default(0)
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  caseSensitive Boolean      @default(false)
+  points        Int          @default(10)
+  sortOrder     Int          @default(0)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
 
-  task          Task           @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  task          Task         @relation(fields: [taskId], references: [id], onDelete: Cascade)
   options       QuestionOption[]
   hints         Hint[]
   submissions   Submission[]
@@ -303,16 +310,21 @@ model Hint {
 
 model Flag {
   id          String   @id @default(uuid())
-  machineId   String
+  machineId   String?
+  taskId      String?
   name        String
   flagHash    String
   points      Int      @default(50)
+  isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  machine     Machine  @relation(fields: [machineId], references: [id], onDelete: Cascade)
+  machine     Machine? @relation(fields: [machineId], references: [id], onDelete: Cascade)
+  task        Task?    @relation(fields: [taskId], references: [id], onDelete: Cascade)
   submissions Submission[]
 
   @@index([machineId])
+  @@index([taskId])
   @@map("flags")
 }
 
@@ -389,18 +401,18 @@ model LabInstance {
 // ==========================================
 
 model Submission {
-  id            String   @id @default(uuid())
+  id            String    @id @default(uuid())
   userId        String
   questionId    String?
   flagId        String?
   answerHash    String
   correct       Boolean
-  pointsAwarded Int      @default(0)
-  createdAt     DateTime @default(now())
+  pointsAwarded Int       @default(0)
+  createdAt     DateTime  @default(now())
 
-  user          User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+  user          User      @relation(fields: [userId], references: [id], onDelete: Restrict)
   question      Question? @relation(fields: [questionId], references: [id], onDelete: SetNull)
-  flag          Flag?    @relation(fields: [flagId], references: [id], onDelete: SetNull)
+  flag          Flag?     @relation(fields: [flagId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([questionId])

@@ -1,3 +1,4 @@
+import { FlagModule } from "./flags/flag.module";
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from './prisma/prisma.module';
@@ -19,7 +20,8 @@ import { MachineModule } from './machines/machine.module';
     GamificationModule,
     DashboardModule,
     AdminModule,
-    MachineModule,
+    MachineModule,,
+    FlagModule,
   ],
 })
 export class AppModule {}
