@@ -37,6 +37,16 @@ enum LabStatus {
   ERROR
 }
 
+enum MachineState {
+  CREATED
+  STOPPED
+  STARTING
+  RUNNING
+  STOPPING
+  EXPIRED
+  ERROR
+}
+
 enum AuditAction {
   LOGIN
   LOGOUT
@@ -53,25 +63,25 @@ enum AuditAction {
 // ==========================================
 
 model User {
-  id            String    @id @default(uuid())
-  email         String    @unique
-  username      String    @unique
-  passwordHash  String
-  emailVerified Boolean   @default(false)
-  avatarUrl     String?
-  bio           String?
-  points        Int       @default(0)
-  xp            Int       @default(0)
-  level         Int       @default(1)
-  streak        Int       @default(0)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  lastLoginAt   DateTime?
+  id                  String               @id @default(uuid())
+  email               String               @unique
+  username            String               @unique
+  passwordHash        String
+  emailVerified       Boolean              @default(false)
+  avatarUrl           String?
+  bio                 String?
+  points              Int                  @default(0)
+  xp                  Int                  @default(0)
+  level               Int                  @default(1)
+  streak              Int                  @default(0)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  lastLoginAt         DateTime?
 
   roles               UserRole[]
   sessions            Session[]
-  verificationTokens  VerificationToken[]  // <--- এই লাইনটি এখানে দাও
-  passwordResetTokens PasswordResetToken[] // <--- এই লাইনটি এখানে দাও
+  verificationTokens  VerificationToken[]
+  passwordResetTokens PasswordResetToken[]
   submissions         Submission[]
   progress            Progress[]
   labInstances        LabInstance[]
@@ -85,11 +95,11 @@ model User {
 }
 
 model Role {
-  id          String     @id @default(uuid())
-  name        String     @unique
+  id          String   @id @default(uuid())
+  name        String   @unique
   description String?
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   users       UserRole[]
 
@@ -129,6 +139,7 @@ model Session {
   @@index([expiresAt])
   @@map("sessions")
 }
+
 model VerificationToken {
   id         String   @id @default(uuid())
   userId     String
@@ -143,33 +154,34 @@ model VerificationToken {
 }
 
 model PasswordResetToken {
-  id         String   @id @default(uuid())
+  id         String    @id @default(uuid())
   userId     String
-  tokenHash  String   @unique
+  tokenHash  String    @unique
   expiresAt  DateTime
   usedAt     DateTime?
-  createdAt  DateTime @default(now())
+  createdAt  DateTime  @default(now())
 
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@map("password_reset_tokens")
 }
+
 // ==========================================
 // 3. LEARNING PATH, COURSE, ROOM, TASK
 // ==========================================
 
 model LearningPath {
-  id          String   @id @default(uuid())
+  id          String     @id @default(uuid())
   title       String
-  slug        String   @unique
+  slug        String     @unique
   description String?
   imageUrl    String?
   difficulty  Difficulty @default(BEGINNER)
-  published   Boolean  @default(false)
-  sortOrder   Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  published   Boolean    @default(false)
+  sortOrder   Int        @default(0)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 
   courses     Course[]
 
@@ -198,22 +210,22 @@ model Course {
 }
 
 model Room {
-  id              String        @id @default(uuid())
-  courseId        String
-  title           String
-  slug            String        @unique
-  description     String?
-  difficulty      Difficulty    @default(BEGINNER)
-  published       Boolean       @default(false)
-  sortOrder       Int           @default(0)
-  estimatedMinutes Int          @default(30)
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  id               String     @id @default(uuid())
+  courseId         String
+  title            String
+  slug             String     @unique
+  description      String?
+  difficulty       Difficulty @default(BEGINNER)
+  published        Boolean    @default(false)
+  sortOrder        Int        @default(0)
+  estimatedMinutes Int        @default(30)
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
 
-  course          Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  tasks           Task[]
-  machines        Machine[]
-  progress        Progress[]
+  course           Course     @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  tasks            Task[]
+  machines         Machine[]
+  progress         Progress[]
 
   @@index([slug])
   @@index([courseId])
@@ -221,18 +233,18 @@ model Room {
 }
 
 model Task {
-  id          String     @id @default(uuid())
-  roomId      String
-  title       String
-  slug        String
-  content     Json?
-  sortOrder   Int        @default(0)
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  id        String     @id @default(uuid())
+  roomId    String
+  title     String
+  slug      String
+  content   Json?
+  sortOrder Int        @default(0)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
 
-  room        Room       @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  questions   Question[]
-  progress    Progress[]
+  room      Room       @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  questions Question[]
+  progress  Progress[]
 
   @@index([roomId])
   @@map("tasks")
@@ -243,22 +255,22 @@ model Task {
 // ==========================================
 
 model Question {
-  id           String         @id @default(uuid())
-  taskId       String
-  type         QuestionType   @default(TEXT)
-  question     String
-  answer       String?
-  caseSensitive Boolean       @default(false)
-  points       Int            @default(10)
-  sortOrder    Int            @default(0)
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
+  id            String         @id @default(uuid())
+  taskId        String
+  type          QuestionType   @default(TEXT)
+  question      String
+  answer        String?
+  caseSensitive Boolean        @default(false)
+  points        Int            @default(10)
+  sortOrder     Int            @default(0)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 
-  task         Task           @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  options      QuestionOption[]
-  hints        Hint[]
-  submissions  Submission[]
-  progress     Progress[]
+  task          Task           @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  options       QuestionOption[]
+  hints         Hint[]
+  submissions   Submission[]
+  progress      Progress[]
 
   @@index([taskId])
   @@map("questions")
@@ -290,14 +302,14 @@ model Hint {
 }
 
 model Flag {
-  id          String       @id @default(uuid())
+  id          String   @id @default(uuid())
   machineId   String
   name        String
   flagHash    String
-  points      Int          @default(50)
-  createdAt   DateTime     @default(now())
+  points      Int      @default(50)
+  createdAt   DateTime @default(now())
 
-  machine     Machine      @relation(fields: [machineId], references: [id], onDelete: Cascade)
+  machine     Machine  @relation(fields: [machineId], references: [id], onDelete: Cascade)
   submissions Submission[]
 
   @@index([machineId])
@@ -309,16 +321,16 @@ model Flag {
 // ==========================================
 
 model MachineTemplate {
-  id               String       @id @default(uuid())
+  id               String     @id @default(uuid())
   name             String
-  slug             String       @unique
+  slug             String     @unique
   description      String?
   image            String
-  difficulty       Difficulty   @default(BEGINNER)
-  estimatedMinutes Int          @default(60)
-  enabled          Boolean      @default(true)
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
+  difficulty       Difficulty @default(BEGINNER)
+  estimatedMinutes Int        @default(60)
+  enabled          Boolean    @default(true)
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
 
   machines         Machine[]
 
@@ -338,8 +350,8 @@ model Machine {
 
   room              Room            @relation(fields: [roomId], references: [id], onDelete: Cascade)
   machineTemplate   MachineTemplate @relation(fields: [machineTemplateId], references: [id], onDelete: Restrict)
-  labInstances      LabInstance[]
   flags             Flag[]
+  labInstances      LabInstance[]
 
   @@index([roomId])
   @@index([machineTemplateId])
@@ -347,20 +359,23 @@ model Machine {
 }
 
 model LabInstance {
-  id             String      @id @default(uuid())
-  userId         String
-  machineId      String
-  provider       String      @default("docker")
-  status         LabStatus   @default(STOPPED)
-  connectionInfo Json?
-  startedAt      DateTime?
-  expiresAt      DateTime?
-  stoppedAt      DateTime?
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
+  id                 String       @id @default(uuid())
+  userId             String
+  machineId          String?      
+  templateId         String?      
+  provider           String       @default("docker")
+  status             MachineState @default(CREATED)
+  providerRuntimeId  String?      @unique
+  connectionInfo     Json?
+  startedAt          DateTime?
+  stoppedAt          DateTime?
+  expiresAt          DateTime?
+  lastLifecycleError String?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
 
-  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  machine        Machine     @relation(fields: [machineId], references: [id], onDelete: Cascade)
+  user               User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  machine            Machine?     @relation(fields: [machineId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([machineId])
@@ -374,18 +389,18 @@ model LabInstance {
 // ==========================================
 
 model Submission {
-  id            String    @id @default(uuid())
+  id            String   @id @default(uuid())
   userId        String
   questionId    String?
   flagId        String?
   answerHash    String
   correct       Boolean
-  pointsAwarded Int       @default(0)
-  createdAt     DateTime  @default(now())
+  pointsAwarded Int      @default(0)
+  createdAt     DateTime @default(now())
 
-  user          User      @relation(fields: [userId], references: [id], onDelete: Restrict)
+  user          User     @relation(fields: [userId], references: [id], onDelete: Restrict)
   question      Question? @relation(fields: [questionId], references: [id], onDelete: SetNull)
-  flag          Flag?     @relation(fields: [flagId], references: [id], onDelete: SetNull)
+  flag          Flag?    @relation(fields: [flagId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([questionId])
@@ -448,16 +463,16 @@ model UserBadge {
 }
 
 model Achievement {
-  id           String            @id @default(uuid())
-  name         String
-  slug         String            @unique
-  description  String?
-  type         String
-  target       Int
-  points       Int               @default(100)
-  createdAt    DateTime          @default(now())
+  id          String            @id @default(uuid())
+  name        String
+  slug        String            @unique
+  description String?
+  type        String
+  target      Int
+  points      Int               @default(100)
+  createdAt   DateTime          @default(now())
 
-  userUnlocks  UserAchievement[]
+  userUnlocks UserAchievement[]
 
   @@map("achievements")
 }
