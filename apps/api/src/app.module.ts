@@ -1,21 +1,23 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { DatabaseModule } from './database/database.module';
-import { AuthModule } from './modules/auth/auth.module';
-import { ProfileModule } from './modules/profile/profile.module';
-import { LearningPathModule } from './modules/learning-paths/learning-path.module';
-import { CourseModule } from './modules/courses/course.module';
+import { ConfigModule } from '@nestjs/config';
+import { PrismaModule } from './prisma/prisma.module';
+import { HealthModule } from './health/health.module';
+import { TaskModule } from './task/task.module';
+import { QuestionModule } from './question/question.module';
+import { GamificationModule } from './gamification/gamification.module';
+import { DashboardModule } from './dashboard/dashboard.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
-    DatabaseModule,
-    AuthModule,
-    ProfileModule,
-    LearningPathModule,
-    CourseModule,
+    ConfigModule.forRoot({ isGlobal: true }),
+    PrismaModule,
+    HealthModule,
+    TaskModule,
+    QuestionModule,
+    GamificationModule,
+    DashboardModule,
+    AdminModule,
   ],
-  controllers: [AppController],
-  providers: [AppService],
 })
 export class AppModule {}

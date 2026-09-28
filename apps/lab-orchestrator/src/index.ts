@@ -1,17 +1,13 @@
-import express from 'express';
-
+import express = require('express');
 const app = express();
-const PORT = 5000;
+const PORT = process.env.PORT || 4001;
 
 app.use(express.json());
 
 app.get('/health', (req, res) => {
-  res.json({
-    status: 'ok',
-    service: 'cyberlab-lab-orchestrator',
-  });
+  res.json({ status: 'ok', service: 'lab-orchestrator' });
 });
 
 app.listen(PORT, () => {
-  console.log(`Lab Orchestrator running on http://localhost:${PORT}`);
+  console.log(`Lab Orchestrator running on port ${PORT}`);
 });
