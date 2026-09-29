@@ -1,3 +1,4 @@
+import { SearchModule } from "./modules/search/search.module";
 import { FlagModule } from "./flags/flag.module";
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
@@ -12,6 +13,7 @@ import { MachineModule } from './machines/machine.module';
 
 @Module({
   imports: [
+    SearchModule,
     ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule,
     HealthModule,

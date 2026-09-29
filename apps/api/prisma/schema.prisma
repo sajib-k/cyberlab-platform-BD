@@ -192,6 +192,8 @@ model LearningPath {
   courses     Course[]
 
   @@index([slug])
+  @@index([published, title])
+  @@index([createdAt])
   @@map("learning_paths")
 }
 
@@ -212,6 +214,8 @@ model Course {
 
   @@index([slug])
   @@index([learningPathId])
+  @@index([published, title])
+  @@index([createdAt])
   @@map("courses")
 }
 
@@ -254,6 +258,7 @@ model Task {
   progress  Progress[]
 
   @@index([roomId])
+  @@index([title])
   @@map("tasks")
 }
 
